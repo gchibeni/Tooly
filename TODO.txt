@@ -1,0 +1,47 @@
+Context Menu:
+- APP Shortcut
+- Run with app
+- Run script
+- Run terminal
+- Copy Path (ok)
+
+- Work on files (ok)
+- Work on folders (ok)
+- Work on extensions (ok)
+
+- Custom SubMenus (ok)
+- Pre-made menu items
+- Setup helper (Enable)
+
+General:
+- Explorer Extension (wip)
+- Clipboard Manager
+- Color Picker & Pallete Saver
+- Image, Sound, Videos Converters & Compressors
+- 3D Converters
+- Video Downloader - ytdlp
+- Macros - Keyboard remapper
+
+Pages:
+ - Greetings > Animation greeting and sliding to setup (Only until setup / Then never again)
+ - Setup > Ask to start on startup & to setup extension
+ - Settings > Show a list of settings
+    - Initialize on startup
+    - Shortcuts & hotkey
+    - Import/export settings
+    - About
+    - Reset to defaults
+ - Actions > Context menu setup
+ - Clipboard > Saved copies list, search, favorite and ignore apps
+ - Palette > Color picker, recent and saved colors
+ - Converters > Image, Sounds & 3D converters
+ - Downloader > Save video from URL
+ - Macros
+Toolbar Icon:
+ - Clipboard
+ - Palette
+ - Converters
+ - Downloader
+
+Readme:
+- Build [npm run tauri build, src-xcode/build.sh, ]
