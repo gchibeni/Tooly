@@ -7,13 +7,17 @@
         "dev": "vite",
         "build": "tsc && vite build",
         "preview": "vite preview",
-        "tauri": "tauri"
+        "tauri": "tauri",
+        "macos": "tauri build --bundles app && ./src-xcode/build-ext.sh --y && ./src-xcode/certify.sh",
+        "windows": "echo 'TODO: build for windows'",
+        "linux": "echo 'TODO: build for linux'"
     },
     "devDependencies": {
         "@tauri-apps/cli": "^2.9.6",
         "@tauri-apps/plugin-deep-link": "^2.4.6",
         "typescript": "~5.9.3",
-        "vite": "^7.2.4"
+        "vite": "^7.2.4",
+        "create-dmg": "^8.0.0"
     },
     "dependencies": {
         "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
