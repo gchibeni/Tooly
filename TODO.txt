@@ -44,4 +44,4 @@ Toolbar Icon:
  - Downloader
 
 Readme:
-- Build [npm run tauri build, src-xcode/build.sh, ]
+- Build [npm run windows, npm run macos, npm run linux]

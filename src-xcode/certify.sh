@@ -7,8 +7,43 @@ cd "$SCRIPT_DIR"
 TAURI_BUNDLE_DIR="../src-tauri/target/release/bundle/macos"
 APP_NAME="tooly.app"
 TAURI_APP_PATH="$TAURI_BUNDLE_DIR/$APP_NAME"
+MACOS_APP_PATH="/Applications/$APP_NAME"
+TAURI_DEBUG_PATH="$MACOS_APP_PATH/Contents/MacOS/tooly"
 PLUGINS_DIR="$TAURI_APP_PATH/Contents/PlugIns"
 ENTITLEMENTS="./.entitlements"
+
+ARG_IDENTITY=""
+BUNDLE=false
+OPEN=false
+DEBUG=false
+
+#endregion
+
+#region Arguments
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --bundle)
+      BUNDLE=true
+      shift
+      ;;
+    --open)
+      OPEN=true
+      shift
+      ;;
+    --debug)
+      DEBUG=true
+      shift
+      ;;
+    --identity)
+      ARG_IDENTITY="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
 
 #endregion
 
@@ -46,6 +81,11 @@ printf "%2d) Custom identity\n" "$i"
 #region Choice
 
 while true; do
+    if [ -n "$ARG_IDENTITY" ]; then
+        INDEX=$(($ARG_IDENTITY - 1))
+        SIGN_IDENTITY="${IDENTITIES[$INDEX]}"
+        break
+    fi
     read -p "Select identity number: " choice
     if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
         echo "Invalid input. Enter a number."
@@ -118,24 +158,42 @@ echo "✅ Code signing completed successfully."
 
 #endregion
 
+#region Debug
+
+if $DEBUG; then
+    killall tooly
+    echo "Debug mode enabled, starting application..."
+    echo "Removing old version..."
+    rm -rf "$MACOS_APP_PATH"
+    echo "Installing new version..."
+    cp -R "$TAURI_APP_PATH" "/Applications/"
+    echo "App installed to /Applications"
+    echo ""
+    echo ""
+    echo ""
+    # The app must be installed in Applications folder for it to work propely with all the functions.
+    exec "$TAURI_DEBUG_PATH"
+    exit 0
+fi
+
+#endregion
+
 #region Bundler
 
 # Check for arguments.
-if [[ "$1" == "--bundle" ]]; then
-    BUNDLE=true
-else
+if [[ $BUNDLE == false ]]; then
     # Repeat question until valid answer.
     while true; do
-    read -p "Do you want to bundle application into a dmg file? [Y]es/[N]o: " response
-    response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
+        read -p "Do you want to bundle application into a dmg file? [Y]es/[N]o: " response
+        response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
 
-    if [[ "$response" == "y" || "$response" == "yes" ]]; then
-        BUNDLE=true
-        break
-    elif [[ "$response" == "n" || "$response" == "no" ]]; then
-        BUNDLE=false
-        break
-    fi
+        if [[ "$response" == "y" || "$response" == "yes" ]]; then
+            BUNDLE=true
+            break
+        elif [[ "$response" == "n" || "$response" == "no" ]]; then
+            BUNDLE=false
+            break
+        fi
     done
 fi
 
@@ -151,7 +209,25 @@ if $BUNDLE; then
     "$TAURI_BUNDLE_DIR"
 else
     echo "Skipping bundle."
-    exit 0
 fi
 
+#endregion
+
+#region File
+
+if $OPEN; then
+    open "$TAURI_BUNDLE_DIR"
+else
+    while true; do
+        read -p "Do you want to open build location? [Y]es/[N]o: " response
+        response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
+
+        if [[ "$response" == "y" || "$response" == "yes" ]]; then
+            open "$TAURI_BUNDLE_DIR"
+            break
+        else
+            break
+        fi
+    done
+fi
 #endregion
