@@ -21,6 +21,7 @@ General:
 - 3D Converters
 - Video Downloader - ytdlp
 - Macros - Keyboard remapper
+- Authenticator
 
 Pages:
  - Greetings > Animation greeting and sliding to setup (Only until setup / Then never again)

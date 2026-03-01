@@ -1,12 +1,12 @@
+use once_cell::sync::OnceCell;
 use std::{fs, sync::Mutex};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{ActivationPolicy, App, AppHandle, Manager, Url, WindowEvent};
-use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutEvent, ShortcutState,
 };
 mod utils;
 mod windows;
-use once_cell::sync::OnceCell;
 
 // region: Variables
 
@@ -32,6 +32,9 @@ pub fn run() {
 
     // Initialize deep-link plugin (tooly://).
     builder = builder.plugin(tauri_plugin_deep_link::init());
+
+    // Initialize positioner plugin.
+    builder = builder.plugin(tauri_plugin_positioner::init());
 
     // Initialize dialog plugin.
     builder = builder.plugin(tauri_plugin_dialog::init());
@@ -61,6 +64,8 @@ pub fn run() {
         set_policy(app, ActivationPolicy::Accessory);
         // Register all shortcuts (Make them dynamic).
         register_shortcuts(app);
+        // Create tray icon.
+        create_tray(app);
         // Handle execution.
         let args: Vec<String> = std::env::args().collect();
         handle_execution(app.app_handle(), args);
@@ -120,7 +125,7 @@ fn handle_execution(app: &AppHandle, _args: Vec<String>) {
 }
 
 /// Handle app reopen event and single instance arguments.
-fn handle_reopen(app: &AppHandle, _args: Vec<String>) {
+fn handle_reopen(_app: &AppHandle, _args: Vec<String>) {
     println!("Execution - App reopened (Arguments: '{:?}')", _args);
     windows::open_main();
 }
@@ -148,6 +153,35 @@ fn register_shortcuts(app: &mut App) {
     // TODO: Make shortcuts dynamic via config.
     let ctrl_n_shortcut = Shortcut::new(Some(Modifiers::CONTROL), Code::KeyN);
     app.global_shortcut().register(ctrl_n_shortcut).unwrap();
+}
+
+/// Create tray icon.
+fn create_tray(app: &mut App) {
+    TrayIconBuilder::new()
+        .icon_as_template(true)
+        .icon(app.default_window_icon().unwrap().clone())
+        .on_tray_icon_event(|tray: &tauri::tray::TrayIcon, event| {
+            tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
+            match event {
+                TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } => {
+                    windows::open_tray();
+                }
+                TrayIconEvent::Click {
+                    button: MouseButton::Right,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } => {
+                    windows::open_tray();
+                }
+                _ => {}
+            }
+        })
+        .build(app)
+        .ok();
 }
 
 /// Set application activation policy (macOS only).

@@ -161,7 +161,7 @@ echo "✅ Code signing completed successfully."
 #region Debug
 
 if $DEBUG; then
-    killall tooly
+    killall tooly || true
     echo "Debug mode enabled, starting application..."
     echo "Removing old version..."
     rm -rf "$MACOS_APP_PATH"
