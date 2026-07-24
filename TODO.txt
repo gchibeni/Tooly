@@ -35,7 +35,7 @@ Pages:
  - Actions > Context menu setup
  - Clipboard > Saved copies list, search, favorite and ignore apps
  - Palette > Color picker, recent and saved colors
- - Converters > Image, Sounds & 3D converters
+ - Converters > Image & BG Remover, Sounds & 3D converters
  - Downloader > Save video from URL
  - Macros
 Toolbar Icon:

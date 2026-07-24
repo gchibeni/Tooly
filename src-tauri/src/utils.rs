@@ -21,6 +21,7 @@ const SCRIPT_TIMEOUT: u64 = 120;
 struct Payload {
     target: String,
     #[serde(rename = "targetType")]
+    #[allow(dead_code)]
     target_type: String,
     items: Vec<String>,
     action: String,
@@ -50,6 +51,7 @@ pub fn execute_url(url: &Url) {
     // Perform command specific actions.
     match current_command.as_str() {
         "run" => run_command(&current_command, &current_payload),
+        "uninstall" => crate::uninstall::trigger_uninstall(&crate::get_app_handle()),
         _ => println!("Execution - Unknown command: {}", current_command),
     }
 }
@@ -129,7 +131,7 @@ fn action_create(info: &Payload) {
 
 /// Run selected files with app.
 fn action_app(info: &Payload, is_shortcut: bool) {
-    let mut command = Command::new("");
+    let mut command;
     #[cfg(target_os = "macos")]
     {
         command = Command::new("open");
@@ -309,7 +311,7 @@ fn action_script(info: &Payload) {
 }
 
 /// Find and replace in selected files names.
-fn action_find_and_replace(info: &Payload) {
+fn action_find_and_replace(_info: &Payload) {
     // TODO: Implement find and replace in file names for macOS, windows and linux.
     windows::open_find_and_replace();
 }

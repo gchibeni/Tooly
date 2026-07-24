@@ -5,6 +5,7 @@ use tauri::{App, AppHandle, Manager, Url, WindowEvent};
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutEvent, ShortcutState,
 };
+mod uninstall;
 mod utils;
 mod windows;
 
@@ -67,6 +68,8 @@ pub fn run() {
         register_shortcuts(app);
         // Create tray icon.
         create_tray(app);
+        // Re-enable the Finder Sync extension if a previous uninstall disabled it.
+        uninstall::ensure_extension_enabled();
         // Handle execution.
         let args: Vec<String> = std::env::args().collect();
         handle_execution(app.app_handle(), args);
@@ -81,6 +84,9 @@ pub fn run() {
             window.hide().unwrap();
         }
     });
+
+    // Register invokable commands.
+    builder = builder.invoke_handler(tauri::generate_handler![uninstall::uninstall_tooly]);
 
     // Finalize build and run.
     builder
@@ -124,6 +130,8 @@ fn handle_execution(app: &AppHandle, _args: Vec<String>) {
     if is_first_run(app) {
         println!("Execution - First time running application.");
         windows::open_main();
+        // Add the Finder toolbar item without blocking startup.
+        std::thread::spawn(uninstall::ensure_toolbar_item);
     }
 }
 
