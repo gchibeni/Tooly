@@ -16,14 +16,50 @@ class FinderSync: FIFinderSync {
         FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/")]
     }
     
+    // MARK: - Toolbar Item
+
+    override var toolbarItemName: String { "Tooly" }
+
+    override var toolbarItemToolTip: String { "Tooly actions for the selection or current folder." }
+
+    /// Use the containing app's icon so the toolbar item always matches it.
+    override var toolbarItemImage: NSImage {
+        if let appURL = containingAppURL() {
+            // Prefer the bundled glyph: template rendering only keeps the
+            // alpha channel, and the system app icon is an opaque squircle.
+            let glyphURL = appURL.appendingPathComponent("Contents/Resources/icon.png")
+            let image = NSImage(contentsOf: glyphURL)
+                ?? NSWorkspace.shared.icon(forFile: appURL.path)
+            let fitted = aspectFitImage(image, size: 19)
+            // Render as template so it adapts to the toolbar theme,
+            // matching the app's menu bar icon.
+            fitted.isTemplate = true
+            return fitted
+        }
+        return NSImage(systemSymbolName: "hammer", accessibilityDescription: "Tooly") ?? NSImage()
+    }
+
+    /// Context resolved when the toolbar menu was opened, used as fallback in
+    /// locations where Finder Sync gets no callbacks (File Provider volumes).
+    private var toolbarSelection: [URL] = []
+    private var toolbarTarget: URL?
+
     // MARK: - Construction
-    
+
     /// Rebuild and return new context menu with dynamic items.
     override func menu(for menuKind: FIMenuKind) -> NSMenu {
         print("Menu - Recreating menus")
         let menu = NSMenu(title: "")
         var groups: [String: NSMenu] = [:]
-        let selected = FIFinderSyncController.default().selectedItemURLs() ?? []
+        let selected: [URL]
+        if menuKind == .toolbarItemMenu {
+            resolveToolbarContext()
+            selected = toolbarSelection
+        } else {
+            toolbarSelection = []
+            toolbarTarget = nil
+            selected = FIFinderSyncController.default().selectedItemURLs() ?? []
+        }
         
         createSeparator(menu, true)
         for orderedItem in SettingsManager.shared.itemOrder {
@@ -67,7 +103,42 @@ class FinderSync: FIFinderSync {
             }
             groupMenu.addItem(menuItem)
         }
+        appendUninstallItem(menu, selected)
         return menu;
+    }
+
+    /// Append an "Uninstall Tooly" item when the selection is the app bundle
+    /// this extension is running from.
+    func appendUninstallItem(_ menu: NSMenu, _ selected: [URL]) {
+        guard let appBundle = containingAppURL(),
+              selected.count == 1,
+              let selection = selected.first,
+              selection.standardizedFileURL.path == appBundle.standardizedFileURL.path
+        else { return }
+        let item = NSMenuItem(
+            title: "Uninstall",
+            action: #selector(uninstallAction(_:)),
+            keyEquivalent: ""
+        )
+        item.target = self
+        item.image = getMenuIcon("symbol", "trash")
+        menu.addItem(item)
+    }
+
+    /// Return the app bundle containing this extension.
+    /// (tooly.app/Contents/PlugIns/tooly-findersync.appex → tooly.app)
+    func containingAppURL() -> URL? {
+        let url = Bundle.main.bundleURL
+            .deletingLastPathComponent() // PlugIns
+            .deletingLastPathComponent() // Contents
+            .deletingLastPathComponent() // tooly.app
+        return url.pathExtension == "app" ? url : nil
+    }
+
+    /// Ask the main app to start its uninstall flow.
+    @objc func uninstallAction(_ sender: NSMenuItem) {
+        guard let url = URL(string: "tooly://uninstall") else { return }
+        NSWorkspace.shared.open(url)
     }
     
     /// Return beauty icon  based on item type and path.
@@ -132,8 +203,60 @@ class FinderSync: FIFinderSync {
         menu.addItem(item)
     }
     
+    // MARK: - Context Resolution
+
+    /// Resolve the selection and current folder for the toolbar menu.
+    /// Native Finder Sync calls work on regular volumes; inside File Provider
+    /// folders (Dropbox, iCloud, OneDrive) they return nothing, so ask Finder
+    /// itself via Apple Events. Falls back to the current folder when nothing
+    /// is selected.
+    func resolveToolbarContext() {
+        let controller = FIFinderSyncController.default()
+        var selection = controller.selectedItemURLs() ?? []
+        var target = controller.targetedURL()
+        if selection.isEmpty || target == nil {
+            let queried = queryFinderContext()
+            if selection.isEmpty { selection = queried.selection }
+            if target == nil { target = queried.folder }
+        }
+        if selection.isEmpty, let folder = target {
+            selection = [folder]
+        }
+        toolbarSelection = selection
+        toolbarTarget = target
+    }
+
+    /// Ask Finder for the front window's folder and current selection.
+    func queryFinderContext() -> (folder: URL?, selection: [URL]) {
+        let script = """
+        tell application "Finder"
+            set folderPath to ""
+            try
+                set folderPath to POSIX path of (target of front window as alias)
+            end try
+            set output to folderPath
+            repeat with f in (get selection)
+                try
+                    set output to output & linefeed & POSIX path of (f as alias)
+                end try
+            end repeat
+            return output
+        end tell
+        """
+        var error: NSDictionary?
+        guard let result = NSAppleScript(source: script)?.executeAndReturnError(&error).stringValue else {
+            if let error = error { print("Context - Finder query failed:", error) }
+            return (nil, [])
+        }
+        // First line is always the folder (may be empty), the rest is the selection.
+        let lines = result.components(separatedBy: "\n")
+        let folder = lines.first.flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0) }
+        let selection = lines.dropFirst().filter { !$0.isEmpty }.map { URL(fileURLWithPath: $0) }
+        return (folder, selection)
+    }
+
     // MARK: - Checks
-    
+
     func isTargetType(_ menuItem: MenuItem, _ selected: [URL]) -> Bool {
         switch menuItem.targetType {
         case "any":
@@ -171,8 +294,13 @@ class FinderSync: FIFinderSync {
             return
         }
         print("\n" + menuItem.actionType + "(" + menuItem.key + "):" + menuItem.action)
-        let target = FIFinderSyncController.default().targetedURL() ?? FileManager.default.homeDirectoryForCurrentUser
-        let items = FIFinderSyncController.default().selectedItemURLs() ?? []
+        var items = FIFinderSyncController.default().selectedItemURLs() ?? []
+        if items.isEmpty { items = toolbarSelection }
+        let target = FIFinderSyncController.default().targetedURL()
+            ?? toolbarTarget
+            ?? FileManager.default.homeDirectoryForCurrentUser
+        // Nothing selected anywhere: act on the current folder.
+        if items.isEmpty { items = [target] }
         
         switch menuItem.actionType {
         case "copy":

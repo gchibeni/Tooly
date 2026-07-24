@@ -65,6 +65,10 @@ if $BUNDLE; then
     # Copy .appex to app.
     cp -R "$BUILD_DIR/$TARGET_NAME.appex" "$PLUGINS_DIR/"
     echo "✅ FinderSync.appex bundled into $APP_PATH/Contents/PlugIns/"
+    # Copy glyph icon for the Finder toolbar item (template rendering needs
+    # the transparent glyph, not the squircle app icon).
+    cp "../src-tauri/icons/icon.png" "$APP_PATH/Contents/Resources/icon.png"
+    echo "✅ Toolbar glyph icon copied into $APP_PATH/Contents/Resources/"
 else
     echo "Skipping bundle."
     exit 0

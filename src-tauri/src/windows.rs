@@ -1,7 +1,6 @@
 use crate::get_app_handle;
 use tauri::{
-    AppHandle, Manager, TitleBarStyle, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
-    WindowEvent, Wry,
+    AppHandle, Manager, TitleBarStyle, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry,
 };
 use tauri_plugin_positioner::{Position, WindowExt};
 
