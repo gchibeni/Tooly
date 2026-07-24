@@ -1,6 +1,6 @@
 ## ![Tooly](assets/images/tooly-featured.png)
 
-A cross-platform desktop application that automates image acquisition and organization from spreadsheet data, handling CSV/TSV and Sheets ingestion, bulk downloading, smart renaming and folder structuring.
+A powerful macOS and Windows utility and extension that elevates productivity and streamlines workflows for everyone—specially crafted for developers and designers.
 
 ## Development
 
