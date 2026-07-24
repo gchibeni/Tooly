@@ -1,6 +1,7 @@
 use crate::windows;
 use percent_encoding::percent_decode_str;
 use serde::Deserialize;
+#[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::PermissionsExt;
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -250,7 +251,7 @@ fn action_script(info: &Payload) {
             .stderr(Stdio::piped());
 
         for item in &info.items {
-            cmd.arg(item);
+            command.arg(item);
         }
     }
     // Start bash script with arguments from info.

@@ -1,8 +1,9 @@
 use crate::get_app_handle;
 use tauri::{
-    AppHandle, Manager, TitleBarStyle, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
-    WindowEvent, Wry,
+    AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry,
 };
+#[cfg(target_os = "macos")]
+use tauri::TitleBarStyle;
 use tauri_plugin_positioner::{Position, WindowExt};
 
 // region: Windows
@@ -10,16 +11,20 @@ use tauri_plugin_positioner::{Position, WindowExt};
 pub fn open_main() {
     // Create main window.
     let _window = create("main", "Tooly", "index.html", |config| {
-        config
+        let config = config
             .inner_size(400.0, 600.0)
             .resizable(false)
             .visible(false)
             //.traffic_light_position(Position::Logical(LogicalPosition { x: 12.0, y: 150.0 }))
-            .title_bar_style(TitleBarStyle::Overlay)
-            .hidden_title(true)
             .transparent(true)
             .decorations(true)
-            .skip_taskbar(true)
+            .skip_taskbar(true);
+        // Frameless title bar with hidden title (macOS only).
+        #[cfg(target_os = "macos")]
+        let config = config
+            .title_bar_style(TitleBarStyle::Overlay)
+            .hidden_title(true);
+        config
     });
 }
 

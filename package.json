@@ -15,9 +15,11 @@
     "devDependencies": {
         "@tauri-apps/cli": "^2.9.6",
         "@tauri-apps/plugin-deep-link": "^2.4.6",
-        "create-dmg": "^8.0.0",
         "typescript": "~5.9.3",
         "vite": "^7.2.4"
+    },
+    "optionalDependencies": {
+        "create-dmg": "^8.0.0"
     },
     "dependencies": {
         "@tauri-apps/plugin-clipboard-manager": "^2.3.2",

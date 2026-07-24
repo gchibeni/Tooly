@@ -1,7 +1,7 @@
 use once_cell::sync::OnceCell;
 use std::{fs, sync::Mutex};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{ActivationPolicy, App, AppHandle, Manager, Url, WindowEvent};
+use tauri::{App, AppHandle, Manager, Url, WindowEvent};
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutEvent, ShortcutState,
 };
@@ -60,8 +60,9 @@ pub fn run() {
         APP_HANDLE
             .set(Mutex::new(app.app_handle().to_owned()))
             .unwrap();
-        // Set app policy (Make it not show on dock/taskbar).
-        set_policy(app, ActivationPolicy::Accessory);
+        // Set app policy (Make it not show on dock/taskbar). macOS only.
+        #[cfg(target_os = "macos")]
+        set_policy(app);
         // Register all shortcuts (Make them dynamic).
         register_shortcuts(app);
         // Create tray icon.
@@ -85,11 +86,13 @@ pub fn run() {
     builder
         .build(tauri::generate_context!())
         .expect("Error - Could not build/run application.")
-        .run(|app, event| match event {
+        .run(|_app, event| match event {
+            #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => {
                 // Handle app reopen event.
-                handle_reopen(app, vec![]);
+                handle_reopen(_app, vec![]);
             }
+            #[cfg(target_os = "macos")]
             tauri::RunEvent::Opened { urls } => {
                 for url in urls {
                     handle_url(url);
@@ -185,11 +188,9 @@ fn create_tray(app: &mut App) {
 }
 
 /// Set application activation policy (macOS only).
-fn set_policy(app: &mut App, policy: ActivationPolicy) {
-    #[cfg(target_os = "macos")]
-    {
-        app.set_activation_policy(policy);
-    }
+#[cfg(target_os = "macos")]
+fn set_policy(app: &mut App) {
+    app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 }
 
 // endregion
